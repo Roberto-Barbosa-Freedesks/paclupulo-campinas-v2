@@ -1190,28 +1190,46 @@ window.DEBUG_LEADERBOARD = false;
 
 <!-- ========== SCRIPT PARA REMOVER START-SCREEN E EXIBIR AUTH-SCREEN E TOCAR MÚSICA ========== -->
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const startScreen = document.getElementById("start-screen");
-        const authScreen = document.getElementById("auth-screen");
-        const bgMusic = document.getElementById("bg-music");
+        document.addEventListener("DOMContentLoaded", function () {
+          const startScreen = document.getElementById("start-screen");
+          const authScreen = document.getElementById("auth-screen");
+          const bgMusic = document.getElementById("bg-music");
 
-        function handleStartClick() {
-          // Toca a música de fundo se ainda não estiver tocando
-          if (bgMusic.paused) {
+          function primeMenuAudio() {
             try { window.dispatchEvent(new Event('gameaudio-prime-request')); } catch(e) {}
+            try {
+              if (window.primeGameAudio) window.primeGameAudio();
+              const mgr = window.__paclupuloAudioV2 || window.__paclupuloAudio;
+              if (mgr && typeof mgr.ensureCtx === 'function') mgr.ensureCtx();
+              if (mgr && typeof mgr.unlock === 'function') mgr.unlock();
+            } catch(e) {}
+            if (bgMusic) {
+              try {
+                bgMusic.muted = false;
+                bgMusic.preload = 'auto';
+                bgMusic.setAttribute('playsinline','');
+                if (bgMusic.readyState < 2) bgMusic.load();
+                bgMusic.play().catch(function(){});
+              } catch(e) {}
+            }
           }
-          window.dispatchEvent(new Event('game:cleanup'));
-          // Esconde a tela de start
-          startScreen.style.display = "none";
-          if (firebase && firebase.auth && firebase.auth().currentUser) { authScreen.style.display = 'none'; } else { authScreen.style.display = 'flex'; }
-        }
 
-        startScreen.addEventListener("click", handleStartClick);
-        startScreen.addEventListener("touchstart", function (e) {
-          e.preventDefault();
-          handleStartClick();
+          try { window.__primeMenuAudio = primeMenuAudio; } catch(e) {}
+
+          function handleStartClick() {
+            primeMenuAudio();
+            window.dispatchEvent(new Event('game:cleanup'));
+            // Esconde a tela de start
+            startScreen.style.display = "none";
+            if (firebase && firebase.auth && firebase.auth().currentUser) { authScreen.style.display = 'none'; } else { authScreen.style.display = 'flex'; }
+          }
+
+          startScreen.addEventListener("click", handleStartClick);
+          startScreen.addEventListener("touchstart", function (e) {
+            e.preventDefault();
+            handleStartClick();
+          });
         });
-      });
     </script>
     <!-- ========== FIM DO SCRIPT START/AUTH ========== -->
 
@@ -1752,24 +1770,28 @@ try {
   <script src="leaderboard-v2.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  try {
-    const startScreen = document.getElementById("start-screen");
-    const authScreen  = document.getElementById("auth-screen");
-    const bgMusic     = document.getElementById("bg-music");
-    function __pp_handleStartClick() {
-      try {
-        if (bgMusic && bgMusic.paused) {
-          try { window.dispatchEvent(new Event('gameaudio-prime-request'));
-        if (window.primeGameAudio) { try { window.primeGameAudio(); } catch(e){} }
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      const startScreen = document.getElementById("start-screen");
+      const authScreen  = document.getElementById("auth-screen");
+      const bgMusic     = document.getElementById("bg-music");
+      function __pp_handleStartClick() {
         try {
-          if (bgMusic) {
-            bgMusic.muted = true;
-            bgMusic.play().then(() => { setTimeout(() => { try{ bgMusic.pause(); bgMusic.currentTime = 0; }catch(_){} bgMusic.muted = false; }, 0); }).catch(()=>{});
+          if (bgMusic && bgMusic.paused) {
+            if (typeof window.__primeMenuAudio === 'function') {
+              window.__primeMenuAudio();
+            } else {
+              try { window.dispatchEvent(new Event('gameaudio-prime-request')); } catch(e) {}
+              try { if (window.primeGameAudio) window.primeGameAudio(); } catch(e) {}
+              try {
+                bgMusic.muted = false;
+                bgMusic.preload = 'auto';
+                bgMusic.setAttribute('playsinline','');
+                if (bgMusic.readyState < 2) bgMusic.load();
+                bgMusic.play().catch(function(){});
+              } catch(e){}
+            }
           }
-        } catch(e){}
-      }
-catch(e) {}
         }
         window.dispatchEvent(new Event('game:cleanup'));
         if (startScreen) startScreen.style.display = "none";
