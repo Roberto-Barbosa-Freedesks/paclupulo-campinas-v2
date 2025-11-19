@@ -29,6 +29,40 @@
     return ctx;
   }
 
+  // Prime silencioso dos elementos legados (<audio>) para destravar iOS/Android
+  let legacyPrimed = false;
+  function primeLegacyElements(){
+    const legacy = window.__paclupuloAudio;
+    const elements = [];
+    try{
+      if (!legacy) return;
+      Object.keys(legacy).forEach(key=>{
+        const track = legacy[key];
+        if (track && track.audio instanceof HTMLAudioElement){
+          elements.push(track.audio);
+        }
+      });
+    }catch(_e){}
+    if (!elements.length) return;
+    legacyPrimed = true;
+    elements.forEach(el=>{
+      try{
+        registerMediaElement(el);
+        el.setAttribute('playsinline','');
+        el.preload = el.preload || 'auto';
+        if (el.readyState < 2) el.load();
+        const prevVol = el.volume;
+        const playP = el.play();
+        if (playP && typeof playP.then === 'function'){
+          playP.then(()=>{ try{ el.pause(); el.currentTime = 0; el.volume = prevVol; }catch(_){}})
+               .catch(()=>{ try{ el.volume = prevVol; }catch(_){}});
+        } else {
+          try{ el.pause(); el.currentTime = 0; el.volume = prevVol; }catch(_){ }
+        }
+      }catch(e){ warn('prime legacy el', e); }
+    });
+  }
+
   // desbloqueio
   async function unlockOnce(){
     const t = Date.now();
@@ -59,6 +93,7 @@
       unlocked = (c.state === 'running');
       if (!unlocked){ try{ await c.resume(); unlocked = (c.state === 'running'); }catch(_){} }
       log('Audio desbloqueado?', unlocked);
+      if (!legacyPrimed) primeLegacyElements();
       window.dispatchEvent(new Event('audio:unlocked'));
       return unlocked;
     }finally{
@@ -91,11 +126,12 @@
 
   // Gestos (não removidos)
   function attachGestureUnlockers(){
-    const handler = ()=> unlockOnce();
+    const handler = ()=> { unlockOnce(); if (!legacyPrimed) primeLegacyElements(); };
     ['pointerdown','touchstart','click','keydown'].forEach(evt=>{
       document.addEventListener(evt, handler, {capture:true, passive:true});
     });
     window.addEventListener('gameaudio-prime-request', handler, {capture:true});
+    window.addEventListener('gameaudio-ready', ()=>{ if (!legacyPrimed) primeLegacyElements(); });
   }
 
   // Registrar elemento <audio> no grafo
