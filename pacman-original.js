@@ -172,7 +172,19 @@ function audioTrack(url, volume) {
     var audio = new Audio(url);
         this.audio = audio;
 if (volume) audio.volume = volume;
-// PATCH: mobile inline flags
+
+    function primeAudioElement() {
+        try { window.primeGameAudio && window.primeGameAudio(); } catch (e) {}
+        try {
+            var manager = window.__paclupuloAudioV2 || window.__paclupuloAudio;
+            if (manager && typeof manager.ensureCtx === 'function') manager.ensureCtx();
+            if (manager && typeof manager.unlock === 'function') manager.unlock();
+        } catch (e) {}
+        try { audio.muted = false; audio.setAttribute('preload','auto'); audio.setAttribute('playsinline',''); audio.setAttribute('webkit-playsinline',''); } catch(e) {}
+        try { if (audio.readyState < 2) audio.load(); } catch(e) {}
+    }
+
+    // PATCH: mobile inline flags
     try { audio.setAttribute('preload','auto'); audio.setAttribute('playsinline',''); audio.setAttribute('webkit-playsinline',''); } catch(e) {}
         try { audio.setAttribute("preload","auto"); audio.setAttribute("playsinline",""); audio.setAttribute("webkit-playsinline",""); } catch(e) {}
     audio.load();
@@ -182,6 +194,7 @@ if (volume) audio.volume = volume;
     };
     this.startLoop = function(noResetTime) {
         if (looping) return;
+        primeAudioElement();
         audio.addEventListener('ended', audioLoop);
         audioLoop(noResetTime);
         looping = true;
@@ -205,6 +218,7 @@ if (volume) audio.volume = volume;
     }
     function playSound(noResetTime) {
         // for really rapid sound repeat set noResetTime
+        primeAudioElement();
         if(!audio.paused) {
             audio.pause();
             if (!noResetTime ) audio.currentTime = 0;
