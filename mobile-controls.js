@@ -168,21 +168,24 @@
     button.dataset.baseTransform = directionConfig.transform;
     button.style.cssText = `
       position: absolute;
-      width: 56px;
-      height: 56px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      background: rgba(245, 217, 34, 0.9);
+      background: rgba(245, 217, 34, 0.95);
       border: 3px solid #000;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       transition: all 0.1s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #000;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
       ${directionConfig.position}
     `;
     button.style.transform = directionConfig.transform;
@@ -238,46 +241,54 @@
       -webkit-touch-callout: none;
     `;
 
-    const dpadContainer = document.createElement('div');
-    dpadContainer.id = 'virtual-dpad';
-    dpadContainer.style.cssText = `
-      position: relative;
-      width: 168px;
-      height: 168px;
-      display: block;
-      margin: 10px auto;
-      background: rgba(0, 0, 0, 0.35);
-      border-radius: 50%;
-      border: 3px solid #f5d922;
-      backdrop-filter: blur(2px);
-    `;
+  const dpadContainer = document.createElement('div');
+  dpadContainer.id = 'virtual-dpad';
+  dpadContainer.style.cssText = `
+    position: relative;
+    width: 184px;
+    height: 184px;
+    display: block;
+    margin: 10px auto;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    border: 3px solid #f5d922;
+    backdrop-filter: blur(3px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  `;
 
-    const directions = [
-      { id: 'up', dir: 'DIR_UP', symbol: '▲', position: 'top: 5px; left: 50%;', transform: 'translateX(-50%)', aria: 'Mover para cima' },
-      { id: 'down', dir: 'DIR_DOWN', symbol: '▼', position: 'bottom: 5px; left: 50%;', transform: 'translateX(-50%)', aria: 'Mover para baixo' },
-      { id: 'left', dir: 'DIR_LEFT', symbol: '◀', position: 'left: 5px; top: 50%;', transform: 'translateY(-50%)', aria: 'Mover para esquerda' },
-      { id: 'right', dir: 'DIR_RIGHT', symbol: '▶', position: 'right: 5px; top: 50%;', transform: 'translateY(-50%)', aria: 'Mover para direita' },
-    ];
+  const directions = [
+    { id: 'up', dir: 'DIR_UP', symbol: '▲', position: 'top: 8px; left: 50%;', transform: 'translateX(-50%)', aria: 'Mover para cima' },
+    { id: 'down', dir: 'DIR_DOWN', symbol: '▼', position: 'bottom: 8px; left: 50%;', transform: 'translateX(-50%)', aria: 'Mover para baixo' },
+    { id: 'left', dir: 'DIR_LEFT', symbol: '◀', position: 'left: 8px; top: 50%;', transform: 'translateY(-50%)', aria: 'Mover para esquerda' },
+    { id: 'right', dir: 'DIR_RIGHT', symbol: '▶', position: 'right: 8px; top: 50%;', transform: 'translateY(-50%)', aria: 'Mover para direita' },
+  ];
 
     directions.forEach((directionConfig) => {
       const button = createDirectionalButton(directionConfig);
       dpadContainer.appendChild(button);
     });
 
-    const centerButton = document.createElement('div');
-    centerButton.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: rgba(0, 0, 0, 0.5);
-      border: 2px solid #f5d922;
-      pointer-events: none;
-    `;
-    dpadContainer.appendChild(centerButton);
+  const centerButton = document.createElement('div');
+  centerButton.id = 'dpad-center';
+  centerButton.style.cssText = `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #f5d922;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #f5d922;
+  `;
+  centerButton.innerHTML = '🎮';
+  dpadContainer.appendChild(centerButton);
 
     controlsContainer.appendChild(dpadContainer);
     document.body.appendChild(controlsContainer);

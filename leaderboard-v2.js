@@ -232,7 +232,7 @@
 
   async function loadAndRender(){
     if (state.inflight) return state.inflight;
-    setStatus('Carregando ranking...');
+    showSkeletonScreen();
     state.inflight = (async ()=>{
       try{
         const data = await fetchTop99();
@@ -249,6 +249,21 @@
       }
     })();
     return state.inflight;
+  }
+
+  function showSkeletonScreen(){
+    const container = getContainer();
+    if (!container) return;
+    const skeletons = Array(5).fill(0).map(()=>`
+      <div class="ranking-skeleton">
+        <div class="ranking-skeleton-avatar"></div>
+        <div class="ranking-skeleton-text">
+          <div class="ranking-skeleton-line"></div>
+          <div class="ranking-skeleton-line"></div>
+        </div>
+      </div>
+    `).join('');
+    container.innerHTML = skeletons;
   }
 
   function attachOpeners(){
