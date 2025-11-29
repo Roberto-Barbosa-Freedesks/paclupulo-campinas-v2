@@ -2164,6 +2164,16 @@ try {
       const authScreen  = document.getElementById("auth-screen");
       const bgMusic     = document.getElementById("bg-music");
         function __pp_handleStartClick() {
+          const startWrapper = document.getElementById('start-wrapper');
+          const startText = document.getElementById('start-text');
+
+          if (startWrapper && startWrapper.classList.contains('loading')) {
+            return;
+          }
+
+          if (startWrapper) startWrapper.classList.add('loading');
+          if (startText) startText.classList.add('loading');
+
           try {
             // ✅ CORREÇÃO: Não dispara game:cleanup aqui
             // O cleanup só deve ocorrer ao SAIR do jogo, não ao ENTRAR
@@ -2194,8 +2204,15 @@ try {
             } else {
               if (authScreen) authScreen.style.display = 'flex';
             }
+
+            setTimeout(() => {
+              if (startWrapper) startWrapper.classList.remove('loading');
+              if (startText) startText.classList.remove('loading');
+            }, 500);
           } catch(e){
             console.error('Erro ao processar clique de start:', e);
+            if (startWrapper) startWrapper.classList.remove('loading');
+            if (startText) startText.classList.remove('loading');
           }
         }
     }
