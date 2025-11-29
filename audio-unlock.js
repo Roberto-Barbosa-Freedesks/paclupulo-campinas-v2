@@ -34,6 +34,7 @@
   function primeLegacyElements(){
     const legacy = window.__paclupuloAudio;
     const elements = [];
+
     try{
       if (!legacy) return;
       Object.keys(legacy).forEach(key=>{
@@ -43,30 +44,57 @@
         }
       });
     }catch(_e){}
+
     if (!elements.length) return;
-    legacyPrimed = true;
+
     elements.forEach(el=>{
       try{
         registerMediaElement(el);
         el.setAttribute('playsinline','');
+        el.setAttribute('webkit-playsinline','');
         el.preload = el.preload || 'auto';
-        if (el.readyState < 2) el.load();
+
+        if (el.readyState < 2) {
+          el.load();
+        }
+
         const prevVol = el.volume;
+        el.volume = 0.01;
+
         const playP = el.play();
         if (playP && typeof playP.then === 'function'){
-          playP.then(()=>{ try{ el.pause(); el.currentTime = 0; el.volume = prevVol; }catch(_){}})
-               .catch(()=>{ try{ el.volume = prevVol; }catch(_){}});
+          playP.then(()=>{ 
+            try{ 
+              el.pause(); 
+              el.currentTime = 0; 
+              el.volume = prevVol; 
+            }catch(_){}}
+          ).catch(()=>{ 
+            try{ 
+              el.volume = prevVol; 
+            }catch(_){}}
+          );
         } else {
-          try{ el.pause(); el.currentTime = 0; el.volume = prevVol; }catch(_){ }
+          try{ 
+            el.pause(); 
+            el.currentTime = 0; 
+            el.volume = prevVol; 
+          }catch(_){ }
         }
-      }catch(e){ warn('prime legacy el', e); }
+      }catch(e){ 
+        warn('prime legacy el', e); 
+      }
     });
+
+    legacyPrimed = true;
+    log('Legacy elements primados:', elements.length);
   }
 
   // desbloqueio
   async function unlockOnce(){
     const t = Date.now();
-    if (unlocking || (t - lastUnlockTs) < 120) return unlocked;
+    if (unlocking || (t - lastUnlockTs) < 50) return unlocked;
+
     lastUnlockTs = t;
     unlocking = true;
     try{
@@ -74,7 +102,12 @@
       if (!c) return false;
       if (c.state === 'suspended' || c.state === 'interrupted'){
         log('Tentando resume()...');
-        try{ await c.resume(); }catch(e){ warn('resume() falhou', e); }
+        try{ 
+          await c.resume(); 
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }catch(e){ 
+          warn('resume() falhou', e); 
+        }
       }
       // Prime: buffer silencioso
       try{
@@ -91,8 +124,14 @@
         try{ osc.start(); osc.stop(c.currentTime + 0.02); }catch(_){}
       }catch(e){ /* ignore */ }
       unlocked = (c.state === 'running');
-      if (!unlocked){ try{ await c.resume(); unlocked = (c.state === 'running'); }catch(_){} }
-      log('Audio desbloqueado?', unlocked);
+      if (!unlocked){ 
+        try{ 
+          await c.resume(); 
+          await new Promise(resolve => setTimeout(resolve, 10));
+          unlocked = (c.state === 'running'); 
+        }catch(_){} 
+      }
+      log('Audio desbloqueado?', unlocked, 'Estado:', c.state);
       if (!legacyPrimed) primeLegacyElements();
       window.dispatchEvent(new Event('audio:unlocked'));
       return unlocked;
@@ -106,22 +145,42 @@
     const tryResume = ()=> unlockOnce();
     document.addEventListener('visibilitychange', ()=>{
       if (document.visibilityState === 'visible') {
-        tryResume();
-      } else {
-        // se ocultar, força novo prime ao voltar
         unlocked = false;
-        try{ if (ctx && ctx.state === 'running') ctx.suspend().catch(()=>{}); }catch(_e){}
+        lastUnlockTs = 0;
+
+        tryResume();
+        setTimeout(tryResume, 100);
+        setTimeout(tryResume, 300);
+
+        if (legacyPrimed) {
+          primeLegacyElements();
+        }
+      } else {
+        try{
+          if (ctx && ctx.state === 'running'){
+            ctx.suspend().catch(()=>{});
+          }
+        }catch(_e){}
       }
     }, {capture:true});
     const handlePageHide = ()=>{
-      unlocked = false;
       try{
-        if (ctx && ctx.state === 'running'){ ctx.suspend().catch(()=>{}); }
+        if (ctx && ctx.state === 'running'){
+          ctx.suspend().catch(()=>{});
+        }
       }catch(_e){}
     };
     window.addEventListener('pagehide', handlePageHide, {capture:true});
-    window.addEventListener('pageshow', tryResume, {capture:true});
-    window.addEventListener('focus', tryResume, {capture:true});
+    window.addEventListener('pageshow', ()=>{
+      unlocked = false;
+      lastUnlockTs = 0;
+      tryResume();
+      setTimeout(tryResume, 100);
+      setTimeout(tryResume, 300);
+    }, {capture:true});
+    window.addEventListener('focus', ()=>{
+      tryResume();
+    }, {capture:true});
   }
 
   // Gestos (não removidos)

@@ -120,10 +120,21 @@
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      
+
       @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.05); }
+      }
+
+      /* Feedback visual ao tocar na tela de start */
+      @keyframes pressDown {
+        0% { transform: translate(-50%, -50%) scale(1); }
+        100% { transform: translate(-50%, -50%) scale(0.95); }
+      }
+
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
       }
       
       /* Loading Spinner */
@@ -135,6 +146,29 @@
         height: 30px;
         animation: spin 1s linear infinite;
         margin: 10px auto;
+      }
+
+      /* Spinner específico para a tela de start */
+      .start-loading-spinner {
+        position: absolute;
+        top: 60%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(245, 217, 34, 0.3);
+        border-top: 4px solid #f5d922;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        display: none;
+      }
+
+      #start-wrapper.loading .start-loading-spinner {
+        display: block;
+      }
+
+      #start-wrapper.loading #start-text {
+        opacity: 0;
       }
       
       @keyframes spin {
@@ -227,24 +261,27 @@
         body {
           font-size: 11px;
         }
-        
+
         #pontos-button, #logout-button {
-          font-size: 9px;
-          padding: 7px 11px;
+          font-size: 11px;
+          padding: 10px 14px;
           top: 10px;
+          min-height: 44px;
         }
-        
-        #pontos-button { right: 80px; }
+
+        #pontos-button { right: 90px; }
         #logout-button { right: 10px; }
-        
+
         .btn {
-          padding: 10px 20px;
-          font-size: 12px;
+          padding: 12px 22px;
+          font-size: 13px;
+          min-height: 48px;
         }
-        
+
         .form-input {
-          padding: 10px;
-          font-size: 12px;
+          padding: 14px 12px;
+          font-size: 16px;
+          min-height: 48px;
         }
         
         /* Melhor experiência em telas pequenas */
@@ -261,13 +298,13 @@
         /* Canvas responsivo */
         #canvas {
           max-width: 100vw;
-          max-height: 70vh;
+          max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px);
           object-fit: contain;
         }
-        
+
         /* Ajustes para notificações mobile */
         #notification-container {
-          top: 60px;
+          top: calc(60px + env(safe-area-inset-top));
           right: 10px;
           left: 10px;
           max-width: none;
@@ -363,6 +400,85 @@
           border: 2px solid #fff;
         }
       }
+
+      /* Estado de feedback na tela de start */
+      #start-text.loading {
+        animation: none !important;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      #start-text:active {
+        animation: pressDown 0.1s ease-out forwards;
+      }
+
+      /* Scroll do ranking e skeleton */
+      #ranking-list {
+        width: 100%;
+        background: rgba(17, 17, 17, 0.8);
+        padding: 20px;
+        border-radius: 12px;
+        max-height: 40vh;
+        overflow-y: auto;
+        border: 1px solid #333;
+        scrollbar-width: thin;
+        scrollbar-color: #f5d922 #333;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        will-change: scroll-position;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+      }
+
+      #ranking-list::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      #ranking-list::-webkit-scrollbar-track {
+        background: #333;
+        border-radius: 4px;
+      }
+
+      #ranking-list::-webkit-scrollbar-thumb {
+        background: #f5d922;
+        border-radius: 4px;
+      }
+
+      #ranking-list::-webkit-scrollbar-thumb:hover {
+        background: #e6c41d;
+      }
+
+      .ranking-skeleton {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      .ranking-skeleton-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        margin-right: 12px;
+      }
+
+      .ranking-skeleton-text { flex: 1; }
+
+      .ranking-skeleton-line {
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        margin-bottom: 8px;
+      }
+
+      .ranking-skeleton-line:last-child {
+        width: 60%;
+        margin-bottom: 0;
+      }
     </style>
 
     <!-- Firebase SDK -->
@@ -395,6 +511,161 @@
         .catch((err) =>
           console.error("Erro ao definir persistência:", err.message),
         );
+    </script>
+
+    <script>
+      const FormValidator = {
+        rules: {
+          email: {
+            pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+            message: 'Email inválido'
+          },
+          name: {
+            pattern: /^[a-zA-ZÀ-ÿ\s]{2,}$/,
+            minWords: 2,
+            message: 'Nome completo obrigatório (mínimo 2 palavras)'
+          },
+          whatsapp: {
+            pattern: /^\d{10,15}$/,
+            message: 'WhatsApp inválido (10-15 dígitos)'
+          },
+          password: {
+            minLength: 6,
+            message: 'Senha deve ter no mínimo 6 caracteres'
+          }
+        },
+
+        validate(input, rule) {
+          const value = input.value.trim();
+          if (!value) {
+            return { valid: false, message: 'Campo obrigatório' };
+          }
+          if (rule.pattern && !rule.pattern.test(value)) {
+            return { valid: false, message: rule.message };
+          }
+          if (rule.minLength && value.length < rule.minLength) {
+            return { valid: false, message: rule.message };
+          }
+          if (rule.minWords) {
+            const words = value.split(/\s+/).filter(w => w.length >= 2);
+            if (words.length < rule.minWords) {
+              return { valid: false, message: rule.message };
+            }
+          }
+          return { valid: true };
+        },
+
+        showError(input, message) {
+          input.style.borderColor = '#ff4444';
+          let errorEl = input.nextElementSibling;
+          if (!errorEl || !errorEl.classList.contains('field-error')) {
+            errorEl = document.createElement('div');
+            errorEl.className = 'field-error';
+            errorEl.style.cssText = `
+              color: #ff4444;
+              font-size: 11px;
+              margin-top: 4px;
+              margin-bottom: 8px;
+              text-align: left;
+            `;
+            input.parentNode.insertBefore(errorEl, input.nextSibling);
+          }
+          errorEl.textContent = message;
+        },
+
+        clearError(input) {
+          input.style.borderColor = '#333';
+          const errorEl = input.nextElementSibling;
+          if (errorEl && errorEl.classList.contains('field-error')) {
+            errorEl.remove();
+          }
+        },
+
+        validateField(input, ruleName) {
+          const rule = this.rules[ruleName];
+          if (!rule) return true;
+          const result = this.validate(input, rule);
+          if (result.valid) {
+            this.clearError(input);
+            input.style.borderColor = '#4CAF50';
+            return true;
+          } else {
+            this.showError(input, result.message);
+            return false;
+          }
+        }
+      };
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const emailInputs = ['login-email', 'register-email'];
+        emailInputs.forEach(id => {
+          const input = document.getElementById(id);
+          if (input) {
+            input.addEventListener('blur', () => {
+              FormValidator.validateField(input, 'email');
+            });
+            input.addEventListener('input', () => {
+              if (input.value.length > 0) {
+                FormValidator.validateField(input, 'email');
+              }
+            });
+          }
+        });
+
+        const nameInput = document.getElementById('register-name');
+        if (nameInput) {
+          nameInput.addEventListener('blur', () => {
+            FormValidator.validateField(nameInput, 'name');
+          });
+        }
+
+        const whatsappInput = document.getElementById('register-whatsapp');
+        if (whatsappInput) {
+          whatsappInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+
+            if (value.length >= 11) {
+              value = value.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            } else if (value.length >= 7) {
+              value = value.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+            } else if (value.length >= 3) {
+              value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+            }
+
+            e.target.value = value;
+          });
+
+          whatsappInput.addEventListener('blur', () => {
+            const digitsOnly = whatsappInput.value.replace(/\D/g, '');
+            const tempInput = { value: digitsOnly, ...whatsappInput };
+            FormValidator.validateField(tempInput, 'whatsapp');
+          });
+        }
+
+        const passwordInputs = ['login-password', 'register-password'];
+        passwordInputs.forEach(id => {
+          const input = document.getElementById(id);
+          if (input) {
+            input.addEventListener('blur', () => {
+              FormValidator.validateField(input, 'password');
+            });
+          }
+        });
+
+        const confirmPassword = document.getElementById('register-confirm-password');
+        const registerPassword = document.getElementById('register-password');
+        if (confirmPassword && registerPassword) {
+          confirmPassword.addEventListener('blur', () => {
+            if (confirmPassword.value !== registerPassword.value) {
+              FormValidator.showError(confirmPassword, 'Senhas não coincidem');
+            } else {
+              FormValidator.clearError(confirmPassword);
+              confirmPassword.style.borderColor = '#4CAF50';
+            }
+          });
+        }
+      });
     </script>
 
     <script>
@@ -551,6 +822,7 @@ window.DEBUG_LEADERBOARD = false;
         >
           TOQUE PARA JOGAR
         </p>
+        <div class="start-loading-spinner" aria-hidden="true"></div>
       </div>
     </div>
     <!-- ========== FIM TELA START ========== -->
@@ -743,6 +1015,92 @@ window.DEBUG_LEADERBOARD = false;
       </div>
     </div>
     <!-- === FIM TELA DE AUTENTICAÇÃO === -->
+
+    <!-- ========== BOTÃO DE TESTE DE ÁUDIO (DEBUG) ========== -->
+    <button 
+      id="audio-test-button" 
+      style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 3000;
+        padding: 10px 15px;
+        background: rgba(245, 217, 34, 0.9);
+        color: #000;
+        border: 2px solid #000;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 11px;
+        cursor: pointer;
+        display: none;
+      "
+      onclick="testAudio()"
+    >
+      🔊 Testar Áudio
+    </button>
+
+    <script>
+      function testAudio() {
+        console.log('=== TESTE DE ÁUDIO ===');
+
+        try {
+          const audioManager = window.__paclupuloAudioV2 || window.__paclupuloAudio;
+          if (audioManager) {
+            const ctx = audioManager.ensureCtx();
+            console.log('AudioContext:', ctx ? ctx.state : 'não disponível');
+
+            if (ctx && ctx.state !== 'running') {
+              console.log('Tentando unlock...');
+              audioManager.unlock().then(() => {
+                console.log('Unlock concluído. Estado:', ctx.state);
+              });
+            }
+          }
+        } catch(e) {
+          console.error('Erro ao testar AudioContext:', e);
+        }
+
+        try {
+          const bgMusic = document.getElementById('bg-music');
+          if (bgMusic) {
+            console.log('bg-music:', {
+              paused: bgMusic.paused,
+              readyState: bgMusic.readyState,
+              volume: bgMusic.volume,
+              muted: bgMusic.muted
+            });
+
+            if (bgMusic.paused) {
+              bgMusic.play().then(() => {
+                console.log('bg-music tocando!');
+              }).catch(err => {
+                console.error('Erro ao tocar bg-music:', err);
+              });
+            }
+          }
+        } catch(e) {
+          console.error('Erro ao testar bg-music:', e);
+        }
+
+        try {
+          const audio = window.__paclupuloAudio;
+          if (audio && audio.eating) {
+            console.log('Testando som de eating...');
+            audio.eating.play();
+            setTimeout(() => audio.eating.stop(), 500);
+          }
+        } catch(e) {
+          console.error('Erro ao testar sons do jogo:', e);
+        }
+
+        alert('Teste de áudio concluído. Verifique o console para detalhes.');
+      }
+
+      if (window.DEBUG_AUDIO || window.location.hostname === 'localhost') {
+        document.getElementById('audio-test-button').style.display = 'block';
+      }
+    </script>
+    <!-- ========== FIM BOTÃO DE TESTE ========== -->
 
     <!-- === TELA DE PONTOS === -->
     <div
@@ -1701,7 +2059,34 @@ pontosScreen.style.display = "none";
 
     <script>
       function iniciarJogo() {
-        try { var __b = document.getElementById('bg-music'); if(__b){ __b.pause(); __b.currentTime = 0; } } catch(e){}
+        try {
+          var __b = document.getElementById('bg-music');
+          if(__b){
+            const fadeOut = setInterval(() => {
+              if (__b.volume > 0.1) {
+                __b.volume -= 0.1;
+              } else {
+                __b.pause();
+                __b.currentTime = 0;
+                __b.volume = 1.0;
+                clearInterval(fadeOut);
+              }
+            }, 50);
+          }
+        } catch(e){}
+
+        try {
+          window.dispatchEvent(new Event('gameaudio-prime-request'));
+          if (window.primeGameAudio) window.primeGameAudio();
+          setTimeout(() => {
+            try {
+              const audioManager = window.__paclupuloAudioV2 || window.__paclupuloAudio;
+              if (audioManager && typeof audioManager.unlock === 'function') {
+                audioManager.unlock();
+              }
+            } catch(e) {}
+          }, 100);
+        } catch(e) {}
 try {
           document.getElementById("auth-screen").style.display = "none";
           document.getElementById("logout-button").style.display = "block";
@@ -1727,6 +2112,9 @@ try {
               typeof homeState !== "undefined"
             ) {
               clearInterval(esperar);
+              try {
+                window.dispatchEvent(new Event('gameaudio-prime-request'));
+              } catch(e) {}
               executive.init();
               switchState(homeState);
               
@@ -1775,32 +2163,51 @@ try {
       const startScreen = document.getElementById("start-screen");
       const authScreen  = document.getElementById("auth-screen");
       const bgMusic     = document.getElementById("bg-music");
-      function __pp_handleStartClick() {
-        try {
-          if (bgMusic && bgMusic.paused) {
-            if (typeof window.__primeMenuAudio === 'function') {
-              window.__primeMenuAudio();
-            } else {
-              try { window.dispatchEvent(new Event('gameaudio-prime-request')); } catch(e) {}
-              try { if (window.primeGameAudio) window.primeGameAudio(); } catch(e) {}
-              try {
-                bgMusic.muted = false;
-                bgMusic.preload = 'auto';
-                bgMusic.setAttribute('playsinline','');
-                if (bgMusic.readyState < 2) bgMusic.load();
-                bgMusic.play().catch(function(){});
-              } catch(e){}
+        function __pp_handleStartClick() {
+          const startWrapper = document.getElementById('start-wrapper');
+          const startText = document.getElementById('start-text');
+
+          if (startWrapper && startWrapper.classList.contains('loading')) {
+            return;
+          }
+
+          try {
+            if (startWrapper) startWrapper.classList.add('loading');
+            if (startText) startText.classList.add('loading');
+
+            if (bgMusic && bgMusic.paused) {
+              if (typeof window.__primeMenuAudio === 'function') {
+                window.__primeMenuAudio();
+              } else {
+                try { window.dispatchEvent(new Event('gameaudio-prime-request')); } catch(e) {}
+                try { if (window.primeGameAudio) window.primeGameAudio(); } catch(e) {}
+                try {
+                  bgMusic.muted = false;
+                  bgMusic.preload = 'auto';
+                  bgMusic.setAttribute('playsinline','');
+                  if (bgMusic.readyState < 2) bgMusic.load();
+                  bgMusic.play().catch(function(){});
+                } catch(e){}
+              }
             }
+
+            if (startScreen) startScreen.style.display = "none";
+            if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+              if (authScreen) authScreen.style.display = 'none';
+            } else {
+              if (authScreen) authScreen.style.display = 'flex';
+            }
+
+            setTimeout(() => {
+              if (startWrapper) startWrapper.classList.remove('loading');
+              if (startText) startText.classList.remove('loading');
+            }, 500);
+          } catch(e){
+            console.error('Erro ao processar clique de start:', e);
+            if (startWrapper) startWrapper.classList.remove('loading');
+            if (startText) startText.classList.remove('loading');
           }
         }
-        window.dispatchEvent(new Event('game:cleanup'));
-        if (startScreen) startScreen.style.display = "none";
-        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-          if (authScreen) authScreen.style.display = 'none';
-        } else {
-          if (authScreen) authScreen.style.display = 'flex';
-        }
-      } catch(e){}
     }
     if (startScreen) {
       startScreen.addEventListener("click", __pp_handleStartClick);
