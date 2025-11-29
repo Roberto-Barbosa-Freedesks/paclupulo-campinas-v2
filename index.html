@@ -2164,21 +2164,15 @@ try {
       const authScreen  = document.getElementById("auth-screen");
       const bgMusic     = document.getElementById("bg-music");
         function __pp_handleStartClick() {
-          const startWrapper = document.getElementById('start-wrapper');
-          const startText = document.getElementById('start-text');
-
-          if (startWrapper && startWrapper.classList.contains('loading')) {
-            return;
-          }
-
           try {
-            if (startWrapper) startWrapper.classList.add('loading');
-            if (startText) startText.classList.add('loading');
+            // ✅ CORREÇÃO: Não dispara game:cleanup aqui
+            // O cleanup só deve ocorrer ao SAIR do jogo, não ao ENTRAR
 
             if (bgMusic && bgMusic.paused) {
               if (typeof window.__primeMenuAudio === 'function') {
                 window.__primeMenuAudio();
               } else {
+                // Prime áudio para menu
                 try { window.dispatchEvent(new Event('gameaudio-prime-request')); } catch(e) {}
                 try { if (window.primeGameAudio) window.primeGameAudio(); } catch(e) {}
                 try {
@@ -2191,21 +2185,17 @@ try {
               }
             }
 
+            // Esconde tela de start
             if (startScreen) startScreen.style.display = "none";
+
+            // Mostra tela de autenticação ou inicia jogo
             if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
               if (authScreen) authScreen.style.display = 'none';
             } else {
               if (authScreen) authScreen.style.display = 'flex';
             }
-
-            setTimeout(() => {
-              if (startWrapper) startWrapper.classList.remove('loading');
-              if (startText) startText.classList.remove('loading');
-            }, 500);
           } catch(e){
             console.error('Erro ao processar clique de start:', e);
-            if (startWrapper) startWrapper.classList.remove('loading');
-            if (startText) startText.classList.remove('loading');
           }
         }
     }
